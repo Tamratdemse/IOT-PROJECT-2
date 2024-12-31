@@ -1,19 +1,14 @@
 import React, { useState } from "react";
-import {
-  FaRegSadTear,
-  FaCheckCircle,
-  FaExclamationCircle,
-} from "react-icons/fa";
+import { FaRegSadTear, FaExclamationCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function DeleteAccount() {
   const navigate = useNavigate();
   const [isChecked, setIsChecked] = useState({
-    backup: false,
     dataLoss: false,
     agree: false,
   });
-  const allChecked = isChecked.backup && isChecked.dataLoss && isChecked.agree;
 
   const handleCheckboxChange = (e) => {
     setIsChecked({
@@ -22,9 +17,31 @@ function DeleteAccount() {
     });
   };
 
-  const handleClick = () => {
-    alert("Your Account has been deleted successfully!");
-    navigate("/login");
+  const handleDeleteAccount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        alert("You are not authorized to perform this action. Please log in.");
+        navigate("/login");
+        return;
+      }
+
+      // Call the deleteAccount endpoint
+      await axios.delete("http://localhost:5000/api/account/deleteAccount", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Clear token and redirect to login page
+      localStorage.removeItem("token");
+      alert("Your account has been deleted successfully.");
+      navigate("/login");
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      alert("Failed to delete account. Please try again later.");
+    }
   };
 
   return (
@@ -39,19 +56,6 @@ function DeleteAccount() {
         </h2>
 
         <div className="flex flex-col gap-4 mb-6">
-          <label className="flex items-center text-gray-700">
-            <input
-              type="checkbox"
-              name="backup"
-              checked={isChecked.backup}
-              onChange={handleCheckboxChange}
-              className="mr-3 accent-blue-500"
-            />
-            <span className="text-lg">
-              Take a backup of your data!{" "}
-              <FaCheckCircle className="inline-block text-green-500" />
-            </span>
-          </label>
           <label className="flex items-center text-gray-700">
             <input
               type="checkbox"
@@ -78,15 +82,18 @@ function DeleteAccount() {
         </div>
 
         <div className="flex justify-between gap-5 pt-4">
-          <button className="bg-green-500 text-white rounded-xl w-40 h-12 hover:bg-green-600 transition duration-300">
+          <button
+            className="bg-green-500 text-white rounded-xl w-40 h-12 hover:bg-green-600 transition duration-300"
+            onClick={() => navigate("/account")}
+          >
             Back
           </button>
           <button
             className={`bg-red-700 text-white rounded-xl w-40 h-12 hover:bg-red-800 transition duration-300 ${
-              !allChecked ? "opacity-50 cursor-not-allowed" : ""
+              !(isChecked.dataLoss && isChecked.agree) ? "opacity-50 cursor-not-allowed" : ""
             }`}
-            disabled={!allChecked}
-            onClick={handleClick}
+            disabled={!(isChecked.dataLoss && isChecked.agree)}
+            onClick={handleDeleteAccount}
           >
             Delete Account
           </button>
