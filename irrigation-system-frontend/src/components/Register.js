@@ -1,137 +1,134 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Register() {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  });
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e) => {
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRegister = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
 
-    if (!username || !email || !password || !confirmPassword) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       setErrorMessage("Please fill in all fields.");
       return;
     }
 
-    if (password !== confirmPassword) {
-      setErrorMessage("Passwords do not match.");
-      return;
-    }
+    setLoading(true);
 
-    console.log("Registering user:", { username, email, password });
-    setErrorMessage("");
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      setLoading(false);
+
+      if (response.ok) {
+        // Save token to localStorage
+        localStorage.setItem("token", data.token);
+
+        // Fetch user profile using the token
+        const token = data.token;
+        const profileResponse = await axios.get("http://localhost:5000/api/account/profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const user = profileResponse.data.user;
+
+        // Optionally, you can store the user data in localStorage or context
+        localStorage.setItem("user", JSON.stringify(user));
+
+        // Redirect to the account page
+        navigate("/");
+      } else {
+        setErrorMessage(data.message || "Failed to register. Please try again.");
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error("Error during registration:", error);
+      setErrorMessage("An error occurred. Please try again later.");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 flex justify-center items-center">
-      <div className="bg-white p-8 shadow-lg rounded-lg w-full max-w-sm">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
-          Create Account
-        </h2>
-
-        {errorMessage && (
-          <p className="text-red-500 text-center mb-4">{errorMessage}</p>
-        )}
-
+    <div className="min-h-screen flex justify-center items-center bg-gray-100">
+      <div className="bg-white p-8 shadow-md rounded-md w-80">
+        <h1 className="text-2xl font-bold text-center mb-6">Register</h1>
+        {errorMessage && <p className="text-red-600 text-center mb-4">{errorMessage}</p>}
         <form onSubmit={handleRegister}>
           <div className="mb-4">
-            <label
-              htmlFor="username"
-              className="block text-sm font-medium text-gray-600"
-            >
-              Username
-            </label>
+            <label className="block mb-2 font-semibold text-gray-600">First Name</label>
             <input
               type="text"
-              id="username"
-              className="w-full p-3 mt-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Choose a username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+              required
             />
           </div>
-
           <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-600"
-            >
-              Email
-            </label>
+            <label className="block mb-2 font-semibold text-gray-600">Last Name</label>
+            <input
+              type="text"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2 font-semibold text-gray-600">Email</label>
             <input
               type="email"
-              id="email"
-              className="w-full p-3 mt-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+              required
             />
           </div>
-
           <div className="mb-4">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-600"
-            >
-              Password
-            </label>
+            <label className="block mb-2 font-semibold text-gray-600">Password</label>
             <input
               type="password"
-              id="password"
-              className="w-full p-3 mt-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+              required
             />
           </div>
-
-          <div className="mb-6">
-            <label
-              htmlFor="confirmPassword"
-              className="block text-sm font-medium text-gray-600"
-            >
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              className="w-full p-3 mt-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <input type="checkbox" id="agreeTerms" className="mr-2" />
-              <label htmlFor="agreeTerms" className="text-sm text-gray-600">
-                I agree to the{" "}
-                <a href="/terms" className="text-blue-600 hover:text-blue-800">
-                  Terms of Service
-                </a>
-              </label>
-            </div>
-          </div>
-
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
+            className={`w-full p-2 text-white rounded-md ${
+              loading ? "bg-gray-500" : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
-            Register
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
-
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?
-            <a href="/login" className="text-blue-600 hover:text-blue-800">
-              Login
-            </a>
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -6,8 +6,9 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setErrorMessage("");
 
@@ -16,8 +17,37 @@ function Login() {
       return;
     }
 
-    navigate("/");
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      setLoading(false); // Stop loading
+
+      if (response.ok) {
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+          navigate("/");
+        } else {
+          setErrorMessage("Login successful, but no token received. Please try again.");
+        }
+      } else {
+        setErrorMessage(data.message || "Failed to log in. Please try again.");
+      }
+    } catch (error) {
+      setLoading(false); // Stop loading on error
+      console.error("Error during login:", error);
+      setErrorMessage("An error occurred. Please try again later.");
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 flex justify-center items-center bg-login">
@@ -92,7 +122,7 @@ function Login() {
 
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?
+            Don't have an account?{" "}
             <a href="/register" className="text-blue-600 hover:text-blue-800">
               Sign up
             </a>
